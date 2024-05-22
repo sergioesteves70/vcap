@@ -85,7 +85,7 @@ namespace vcap
             }
         }
 
-        // Método chamado para capturar um frame automaticamente.
+        // Método para capturar um frame automaticamente.
         private void CaptureTimerElapsed(object sender, ElapsedEventArgs e)
         {
             if (CameraEscolhida != null && CameraEscolhida.IsRunning)
