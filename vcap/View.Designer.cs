@@ -1,7 +1,7 @@
 ﻿
 namespace vcap
 {
-    partial class Form1
+    partial class View
     {
         /// <summary>
         ///  Required designer variable.
@@ -104,7 +104,7 @@ namespace vcap
             button4.TabIndex = 6;
             button4.Text = "Abrir";
             button4.UseVisualStyleBackColor = true;
-            button4.Click += Button4_Click;
+            button4.Click += button4_Click;
             // 
             // button5
             // 
@@ -142,7 +142,7 @@ namespace vcap
             Controls.Add(button1);
             Name = "Form1";
             Text = "Vcap";
-            FormClosed += Form1_FormClosed;
+            FormClosed += View_FormClosed;
             Load += Form1_Load;         
 
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();

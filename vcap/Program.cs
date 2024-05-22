@@ -12,7 +12,7 @@ namespace vcap
             // see https://aka.ms/applicationconfiguration.
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Form1 view = new();
+            View view = new();
             Application.Run(view);
         }
     }
