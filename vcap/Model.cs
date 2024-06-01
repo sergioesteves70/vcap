@@ -1,120 +1,114 @@
-﻿using AForge.Imaging.Filters; 
+﻿using AForge.Imaging.Filters;
 using AForge.Video.DirectShow;
 using AForge.Video;
 using System.Timers;
-using System.Drawing;
-using System.IO;
 
 namespace vcap
 {
-    // Implementa a interface ICameraModel, fornece uma classe concreta que gere câmeras e processamento de imagens.
+    // Implementar a interface ICameraModel para fornecer uma classe que gere câmeras e processamento de imagens.
     public class CameraModel : ICameraModel
     {
-        // Campo privado para armazenar a câmera escolhida para captura de vídeo
-        private VideoCaptureDevice? CameraEscolhida;
+        private VideoCaptureDevice? CameraEscolhida; // Dispositivo de captura de vídeo selecionado
+        private readonly Grayscale grayscaleFilter; // Filtro de escala de cinza
+        private readonly System.Timers.Timer captureTimer; // Temporizador para captura de imagens em intervalos
+        private readonly string captureDirectory = @"C:\uab\LDS\Atividades\efolioC\vcap\imagens\auto\"; // Diretório para salvar as imagens capturadas
 
-        // Campo privado readonly para armazenar uma instância do filtro grayscale
-        private readonly Grayscale grayscaleFilter;
+        public FilterInfoCollection Cameras { get; private set; } // Informações sobre dispositivos de câmera disponíveis
 
-        // Campo privado para um timer que controla a captura automática de frames.
-        private System.Timers.Timer captureTimer;
-
-        // Diretório onde os frames capturados são guardados.
-        private readonly string captureDirectory = @"C:\uab\LDS\Atividades\efolioC\vcapMVC\imagens\auto\";
-
-        // Propriedade pública que retorna as câmeras disponíveis no sistema.
-        public FilterInfoCollection Cameras { get; private set; }
-
-        // Construtor da classe CameraModel. Inicia as câmeras disponíveis, o filtro grayscale e o timer.
         public CameraModel()
         {
-            Cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            grayscaleFilter = new Grayscale(0.2125, 0.7154, 0.0721); // Inicia o filtro grayscale com coeficientes de luminância.
-            captureTimer = new System.Timers.Timer(20000); // Inicia o timer para capturar frames a cada 20 segundos.
-            captureTimer.Elapsed += CaptureTimerElapsed;
+            Cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice); // Inicializar a coleção de câmeras disponíveis
+            grayscaleFilter = new Grayscale(0.2125, 0.7154, 0.0721); // Inicializar o filtro de escala de cinza valores de luminancia
+            captureTimer = new System.Timers.Timer(20000); // Inicializar o temporizador com um intervalo de 20 segundos
+            captureTimer.Elapsed += CaptureTimerElapsed; // Adicionar um manipulador de eventos para o evento Elapsed do temporizador
 
-            // Cria a pasta de captura se não existir.
+            // Verificar se a pasta de captura existe e, se não exitir, criar
             if (!Directory.Exists(captureDirectory))
             {
                 Directory.CreateDirectory(captureDirectory);
             }
         }
 
-        // Método para obter o nome das câmeras disponíveis.
+        // Obtém os nomes dos dispositivos de câmera disponíveis
         public string[] GetCameraNames()
         {
             string[] cameraNomes = new string[Cameras.Count];
             for (int i = 0; i < Cameras.Count; i++)
             {
-                cameraNomes[i] = Cameras[i].Name.ToString(); // Preencher o array com os nomes das câmeras
+                cameraNomes[i] = Cameras[i].Name.ToString();
             }
             return cameraNomes;
         }
 
-        // Método para iniciar a captura de vídeo de uma câmera específica
+        // Iniciar a câmera especificada pelo índice e associar um manipulador de eventos para a captura de novos frames
         public void StartCamera(int index, NewFrameEventHandler captureHandler)
         {
             if (Cameras.Count > 0)
             {
-                ExitCam(); // Parar câmera que esteja ON
-                string NomeVideo = Cameras[index].MonikerString; // Obtém a string que identifica a câmera selecionada
-                CameraEscolhida = new VideoCaptureDevice(NomeVideo);
-                CameraEscolhida.NewFrame += captureHandler; // Associa o manipulador de eventos para novos frames
-                CameraEscolhida.Start(); // Inicia a captura de vídeo
-                captureTimer.Start(); // Inicia o timer para capturar frames automaticamente
+                ExitCam(); // Certificar que não há câmeras em execução antes de iniciar uma nova
+                string NomeVideo = Cameras[index].MonikerString; // Obter o moniker string do dispositivo de vídeo selecionado
+                CameraEscolhida = new VideoCaptureDevice(NomeVideo); // Inicializar um novo dispositivo de captura de vídeo
+                CameraEscolhida.NewFrame += captureHandler; // Associar o manipulador de eventos para o evento NewFrame
+                CameraEscolhida.Start(); // Iniciar a captura de vídeo
+                captureTimer.Start(); // Iniciar o temporizador de captura periódica de imagens
             }
         }
 
-        // Método para parar a captura de vídeo.
+        // Interromper a captura de vídeo e parar o temporizador de captura
         public void StopCamera()
         {
-            captureTimer.Stop(); // Parar o timer de captura automática.
+            captureTimer.Stop(); // Interromper o temporizador de captura
             if (CameraEscolhida != null && CameraEscolhida.IsRunning)
             {
-                CameraEscolhida.SignalToStop(); // Parar a captura de vídeo.
+                CameraEscolhida.SignalToStop(); // Interromper a captura de vídeo
             }
         }
 
-        // Método auxiliar para parar a câmera atual, se estiver ON.
+        // Certificar que a câmera está parada antes de encerrá-la
         private void ExitCam()
         {
             if (CameraEscolhida != null && CameraEscolhida.IsRunning)
             {
-                CameraEscolhida.SignalToStop();
+                CameraEscolhida.SignalToStop(); // Interromper a captura de vídeo
                 CameraEscolhida = null;
             }
         }
 
-        // Método para capturar um frame automaticamente.
+        // Manipulador de eventos para o temporizador de captura
         private void CaptureTimerElapsed(object sender, ElapsedEventArgs e)
         {
             if (CameraEscolhida != null && CameraEscolhida.IsRunning)
             {
-                CameraEscolhida.NewFrame -= SaveFrameHandler; // Remove qualquer manipulador de eventos anterior.
-                CameraEscolhida.NewFrame += SaveFrameHandler; // Adiciona um novo manipulador de eventos para guaradar os frames.
+                CameraEscolhida.NewFrame -= SaveFrameHandler; // Remover qualquer manipulador de eventos existente
+                CameraEscolhida.NewFrame += SaveFrameHandler; // Adicionar um novo manipulador de eventos para capturar um frame
             }
         }
 
-        // Manipulador de eventos para guardar os frames.
+        // Manipulador de eventos para capturar e guardar um frame de vídeo
         private void SaveFrameHandler(object sender, NewFrameEventArgs eventArgs)
         {
-            Bitmap frame = (Bitmap)eventArgs.Frame.Clone(); // Copia o frame atual.
-            SaveFrame(frame); //Guarda o frame na pasta especificada.
-            CameraEscolhida.NewFrame -= SaveFrameHandler; // Remove o manipulador de eventos depois de guardar o frame.
+            Bitmap frame = (Bitmap)eventArgs.Frame.Clone(); 
+            SaveFrame(frame); // Salva o quadro capturado
+            CameraEscolhida.NewFrame -= SaveFrameHandler; // Remover o manipulador de eventos para evitar múltiplas capturas do mesmo frame
         }
 
-        // Método para guardar um frame num ficheiro.
+        // Guardar um frame de imagem na pasta especificada
         private void SaveFrame(Bitmap frame)
         {
-            string fileName = Path.Combine(captureDirectory, $"frame_{DateTime.Now:yyyyMMdd_HHmmss}.jpg"); // Gera um nome de ficheiro baseado na data e hora atual.
-            frame.Save(fileName, System.Drawing.Imaging.ImageFormat.Jpeg); // Guarda a imagem como JPEG.
-            frame.Dispose(); // Liberta os recursos da imagem.
+            string fileName = Path.Combine(captureDirectory, $"frame_{DateTime.Now:yyyyMMdd_HHmmss}.jpg"); // Gerar um nome para o ficheiro único baseado na data e hora
+            frame.Save(fileName, System.Drawing.Imaging.ImageFormat.Jpeg); // Guardar o frame/imagem como um arquivo JPEG
+            frame.Dispose(); // Libertar os recursos do frame/imagem
         }
 
-        // Método para aplicar o filtro grayscale na imagem
+        // Aplicar o filtro de escala de cinza a uma imagem especificada
         public Bitmap ApplyGrayscaleFilter(Bitmap image)
         {
-            return grayscaleFilter.Apply(image); // Aplica o filtro e retorna a imagem com filtro aplicado
+            if (image == null)
+            {
+                throw new ArgumentNullException(nameof(image), "A imagem fornecida não pode ser nula."); // Verifica se a imagem fornecida é nula
+            }
+
+            return grayscaleFilter.Apply(image); // Aplicar o filtro de escala de cinza à imagem
         }
 
     }

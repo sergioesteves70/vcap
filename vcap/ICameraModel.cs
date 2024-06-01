@@ -1,15 +1,14 @@
-﻿using AForge.Video; 
+﻿using AForge.Video;
 using AForge.Video.DirectShow;
 
 namespace vcap
 {
-
     public interface ICameraModel
     {
-        // FilterInfoCollection - retorna informações sobre as câmeras disponíveis no sistema      
+        // FilterInfoCollection - retorna informações sobre as câmeras disponíveis no sistema
         FilterInfoCollection Cameras { get; }
 
-        // Método que retorna um array de strings com os nomes das câmeras disponíveis no sistema        
+        // Método que retorna um array de strings com os nomes das câmeras disponíveis no sistema
         string[] GetCameraNames();
 
         // Método para iniciar a captura de vídeo de uma câmera escolhida
